@@ -46,23 +46,22 @@ class ExpenseLogic with ChangeNotifier {
 
   void replaceExpense(
     String id,
-    String payee,
+    String payees,
     double amount,
     String? notes,
     Category cat,
     Tag tag,
   ) {
-    final dateNow = DateTime.now();
+    // final dateNow = DateTime.now();
     final indexToReplace = _expense.indexWhere(
       (object) => object.id == id,
     ); //find the same id of i want to replace
-    _expense[indexToReplace] = Expense.Expense(
-      id: id,
-      payee: payee,
-      amount: amount,
-      date: dateNow,
-      category: cat,
-      tag: tag,
+    _expense[indexToReplace] = Expense.finalExpense(
+      payees,
+      amount,
+      notes,
+      cat,
+      tag,
     );
     _editMode = false;
     _editExpense = null;
