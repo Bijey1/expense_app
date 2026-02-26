@@ -1,3 +1,4 @@
+import 'package:expense_app/screens/homeScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers.dart';
@@ -15,16 +16,30 @@ class _AddExpenseState extends State<AddExpense> {
   final TextEditingController amount = TextEditingController();
   final TextEditingController notes = TextEditingController();
 
+  Tag? tagSelected;
+  Category? categorySelected;
+
   @override
-  Widget build(BuildContext context) {
-    final _formKeys = GlobalKey<FormState>();
+  void initState() {
+    super.initState();
     final providerObject = context.read<ExpenseLogic>();
-    Category? categorySelected = providerObject.category.isNotEmpty
+    categorySelected = providerObject.category.isNotEmpty
         ? providerObject.category[0]
         : null;
-    Tag? tagSelected = providerObject.tag.isNotEmpty
-        ? providerObject.tag[0]
-        : null;
+    tagSelected = providerObject.tag.isNotEmpty ? providerObject.tag[0] : null;
+
+    if (providerObject.editMode) {
+      categorySelected = providerObject.editExpense!.category;
+      tagSelected = providerObject.editExpense!.tag;
+      amount.text = (providerObject.editExpense!.amount).toString();
+      payeeController.text = providerObject.editExpense!.payee;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final providerObject = context.read<ExpenseLogic>();
+    final _formKeys = GlobalKey<FormState>();
 
     final primaryC = Theme.of(context).colorScheme.primary;
     final onPrimaryC = Theme.of(context).colorScheme.onPrimary;
@@ -33,17 +48,29 @@ class _AddExpenseState extends State<AddExpense> {
     final onSurface = Theme.of(context).colorScheme.onSurface;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
+
       appBar: AppBar(
+        leading: IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+            providerObject.clearEditMode();
+          },
+          icon: Icon(Icons.arrow_back),
+        ),
+
         iconTheme: IconThemeData(color: Colors.white),
         centerTitle: true,
         title: Text(
-          "Expense Tracking App",
+          !providerObject.editMode ? "Add Expense" : "Edit Expense",
           style: TextStyle(color: onPrimaryC),
         ),
         backgroundColor: primaryC,
       ),
 
-      body: Center(
+      body: SingleChildScrollView(
+        //use this to make the widgets scrollable
+        //And to also fix the bottom overflowed error when keyboard pops out
         child: Form(
           key: _formKeys,
           child: Padding(
@@ -59,6 +86,7 @@ class _AddExpenseState extends State<AddExpense> {
                       return "Error";
                     }
                   },
+
                   controller: payeeController,
                   decoration: InputDecoration(
                     labelText: "Enter Payee Name",
@@ -85,6 +113,7 @@ class _AddExpenseState extends State<AddExpense> {
 
                 TextFormField(
                   controller: amount,
+
                   keyboardType: TextInputType.numberWithOptions(),
                   validator: (value) {
                     if (value == null ||
@@ -138,7 +167,7 @@ class _AddExpenseState extends State<AddExpense> {
                     if (value == null) {
                       return "Error";
                     }
-                    print(value.name);
+                    //print(value.name);
                   },
                   decoration: InputDecoration(
                     labelText: "Select a Tag",
@@ -155,8 +184,9 @@ class _AddExpenseState extends State<AddExpense> {
                     );
                   }).toList(),
                   onChanged: (value) {
+                    //print("Tag is ${value?.name}");
                     setState(() {
-                      tagSelected = value!;
+                      tagSelected = value;
                     });
                   },
                 ),
@@ -165,23 +195,42 @@ class _AddExpenseState extends State<AddExpense> {
                   onPressed: () {
                     //Validated
                     if (_formKeys.currentState!.validate()) {
-                      context.read<ExpenseLogic>().addExpense(
-                        payeeController.text,
-                        23,
-                        notes.text,
-                        categorySelected!,
-                        tagSelected!,
-                      );
+                      if (!providerObject.editMode) {
+                        //normal adding
+                        context.read<ExpenseLogic>().addExpense(
+                          payeeController.text,
+                          double.parse(amount.text),
+                          notes.text,
+                          categorySelected!,
+                          tagSelected!,
+                        );
+                      } else {
+                        context.read<ExpenseLogic>().replaceExpense(
+                          providerObject.editExpense!.id,
+                          payeeController.text,
+                          double.parse(amount.text),
+                          notes.text,
+                          categorySelected!,
+                          tagSelected!,
+                        );
+                      }
                       showDialog(
                         context: context,
                         builder: (context) {
                           return SimpleDialog(
                             contentPadding: EdgeInsetsGeometry.all(50),
 
-                            title: Text("Expense Added!"),
+                            title: Text(
+                              !providerObject.editMode
+                                  ? "Expense Added!"
+                                  : "Expense Editted!",
+                            ),
                             children: [
                               ElevatedButton(
-                                onPressed: () => Navigator.pop(context),
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  Navigator.pushNamed(context, "home");
+                                },
                                 child: Text("Okay"),
                               ),
                             ],
@@ -191,10 +240,12 @@ class _AddExpenseState extends State<AddExpense> {
                       print("Success");
                     }
                   },
-                  child: Text("Add Expense"),
                   style: ButtonStyle(
                     backgroundColor: MaterialStateProperty.all(primaryC),
                     foregroundColor: MaterialStateProperty.all(onPrimaryC),
+                  ),
+                  child: Text(
+                    !providerObject.editMode ? "Add Expense" : "Edit Expense",
                   ),
                 ),
               ],

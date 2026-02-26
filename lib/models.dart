@@ -15,7 +15,7 @@ class Expense {
     Tag tag, //Tag ID
   ) {
     String date = DateTime.now().toString();
-    return Expense._Expense(
+    return Expense.Expense(
       id: payee + date,
       payee: payee,
       amount: amount,
@@ -26,7 +26,7 @@ class Expense {
     );
   }
 
-  Expense._Expense({
+  Expense.Expense({
     required this.id,
     required this.payee,
     required this.amount,
