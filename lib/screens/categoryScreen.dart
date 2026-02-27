@@ -26,8 +26,17 @@ class CategoryScreen extends StatelessWidget {
               return ListTile(
                 title: Text(category.name),
                 trailing: InkWell(
-                  onTap: () =>
-                      context.read<ExpenseLogic>().removeCategory(category.id),
+                  onTap: () {
+                    if (provider.expense.any(
+                      (obj) => obj.category.id == category.id,
+                    )) {
+                      //If id is already been used in expense
+
+                      dialog(context, type: "simple");
+                    } else {
+                      context.read<ExpenseLogic>().removeCategory(category.id);
+                    }
+                  },
 
                   child: Icon(Icons.delete, color: Colors.red),
                 ),
@@ -38,93 +47,119 @@ class CategoryScreen extends StatelessWidget {
       ),
 
       floatingActionButton: FloatingActionButton(
-        onPressed: () => dialog(context),
+        onPressed: () => dialog(context, type: "alert"),
         child: Icon(Icons.add),
       ),
     );
   }
 
-  Future<dynamic> dialog(BuildContext contexts) {
-    final TextEditingController categoryController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
+  Future<dynamic> dialog(BuildContext contexts, {required String type}) {
     return showDialog(
       context: contexts,
       builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            side: BorderSide(
-              //color: Theme.of(context).colorScheme.outline,
-              width: 1,
+        if (type == "alert") {
+          final TextEditingController categoryController =
+              TextEditingController();
+          final formKey = GlobalKey<FormState>();
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              side: BorderSide(
+                //color: Theme.of(context).colorScheme.outline,
+                width: 1,
+              ),
+              borderRadius: BorderRadiusGeometry.circular(20),
             ),
-            borderRadius: BorderRadiusGeometry.circular(20),
-          ),
-          //backgroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-          title: Text("Add Category"),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: categoryController,
-                    decoration: InputDecoration(
-                      labelText: "Enter Category Name",
-                      floatingLabelBehavior: FloatingLabelBehavior.always,
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(style: BorderStyle.solid),
+            //backgroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+            title: Text("Add Category"),
+            content: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: categoryController,
+                      decoration: InputDecoration(
+                        labelText: "Enter Category Name",
+                        floatingLabelBehavior: FloatingLabelBehavior.always,
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(style: BorderStyle.solid),
+                        ),
                       ),
+                      validator: (value) {
+                        final duplicate = context.read<ExpenseLogic>();
+                        //Accesses the PROVIDER instance without listening to notifyListeners()
+                        if (value == null ||
+                            value.isEmpty ||
+                            duplicate.category.any(
+                              (object) => object.name == value,
+                            )) {
+                          return "Error";
+                        }
+                        return null;
+                      },
                     ),
-                    validator: (value) {
-                      final duplicate = context.read<ExpenseLogic>();
-                      //Accesses the PROVIDER instance without listening to notifyListeners()
-                      if (value == null ||
-                          value.isEmpty ||
-                          duplicate.category.any(
-                            (object) => object.name == value,
-                          )) {
-                        return "Error";
-                      }
-                      return null;
-                    },
+                  ],
+                ),
+              ),
+            ),
+
+            actions: [
+              OutlinedButton(
+                onPressed: () {
+                  //if yes
+                  if (formKey.currentState!.validate()) {
+                    contexts.read<ExpenseLogic>().addCategory(
+                      categoryController.text,
+                    );
+                    Navigator.pop(context);
+                    //Passed the input Value to the addCategory in the provider class
+                  }
+                },
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outline,
                   ),
-                ],
-              ),
-            ),
-          ),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                ),
 
-          actions: [
-            OutlinedButton(
-              onPressed: () {
-                //if yes
-                if (formKey.currentState!.validate()) {
-                  contexts.read<ExpenseLogic>().addCategory(
-                    categoryController.text,
-                  );
+                child: Text("Add", style: TextStyle(color: Colors.white)),
+              ),
+              OutlinedButton(
+                onPressed: () {
+                  //if no
                   Navigator.pop(context);
-                  //Passed the input Value to the addCategory in the provider class
-                }
-              },
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: Theme.of(context).colorScheme.outline),
-                backgroundColor: Theme.of(context).colorScheme.primary,
-              ),
+                },
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                ),
 
-              child: Text("Add", style: TextStyle(color: Colors.white)),
-            ),
-            OutlinedButton(
-              onPressed: () {
-                //if no
-                Navigator.pop(context);
-              },
-              style: OutlinedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error,
-                side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                child: Text("Cancel", style: TextStyle(color: Colors.white)),
               ),
-
-              child: Text("Cancel", style: TextStyle(color: Colors.white)),
+            ],
+          );
+        } else if (type == "simple") {
+          return AlertDialog(
+            constraints: BoxConstraints(maxHeight: 250, maxWidth: 250),
+            title: Text("Error!"),
+            content: Center(
+              child: Text(
+                "Category is Already Being Used. Change the Category of your Expense First Before Deleting",
+                style: TextStyle(letterSpacing: 2),
+              ),
             ),
-          ],
-        );
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("Okay"),
+              ),
+            ],
+          );
+        } else {
+          return SimpleDialog();
+        }
       },
     );
   }
