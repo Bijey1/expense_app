@@ -12,13 +12,17 @@ class ExpenseLogic with ChangeNotifier {
   List<Category> _category = [];
   List<Tag> _tag = [];
   Expense? _editExpense;
+
+  Map<String, List<Expense>> _sortedExpense = {};
   bool _editMode = false;
 
   List<Expense> get expense => _expense;
   List<Category> get category => _category;
   List<Tag> get tag => _tag;
-  Expense? get editExpense => _editExpense;
+  Expense? get editExpense => _editExpense; //when edit mode
   bool get editMode => _editMode;
+
+  Map<String, List<Expense>> get sortedExpense => _sortedExpense;
   //Getter so that the main _expense will not be modified and is safe
 
   final LocalStorage localStorage = LocalStorage('expenseApp');
@@ -219,5 +223,24 @@ class ExpenseLogic with ChangeNotifier {
     _tag.removeWhere((object) => object.id == tagId);
     notifyListeners();
     await saveTagToLocal();
+  }
+
+  //Sort Expense
+  void sortExpense() {
+    //_sortedExpense
+    _sortedExpense.clear();
+
+    for (var singleExpense in _expense) {
+      _sortedExpense.putIfAbsent(
+        singleExpense.category.name,
+        () => <Expense>[],
+      );
+
+      _sortedExpense[singleExpense.category.name]!.add(singleExpense);
+    }
+
+    print(_sortedExpense);
+
+    notifyListeners();
   }
 }
